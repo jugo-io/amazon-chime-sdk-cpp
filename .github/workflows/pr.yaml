@@ -1,0 +1,20 @@
+name: PR Workflow
+
+on:
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Configure
+        run: |
+          cmake -B build -S ./chime-sdk-signaling-cpp
+
+      - name: Build
+        run: |
+          cmake --build build --target amazon-chime-signaling-sdk-cpp-lib
+
