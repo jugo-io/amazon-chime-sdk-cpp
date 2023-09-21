@@ -17,11 +17,11 @@ project(
 
 # list of options available
 # Enable Address Sanitizer
-option(ENABLE_ASAN "Enable Address Sanitizer" OFF)
+option(CHIMESDK_ENABLE_ASAN "Enable Address Sanitizer" OFF)
 # Build test
-option(BUILD_TEST "Build tests" ON)
+option(CHIMESDK_BUILD_TEST "Build tests" ON)
 
-if(ENABLE_ASAN)
+if(CHIMESDK_ENABLE_ASAN)
     set(CMAKE_CXX_FLAGS_DEBUG
             "${CMAKE_CXX_FLAGS_DEBUG} -O1 -g -fno-omit-frame-pointer -fsanitize=address,undefined"
             )
@@ -45,8 +45,8 @@ endif()
 message(
         STATUS
         "CMakeLists.txt - Current variables:\nCURRENT_BUILD_TYPE: ${CMAKE_BUILD_TYPE}"
-        "\nENABLE_ASAN: ${ENABLE_ASAN}"
-        "\nBUILD_TEST: ${BUILD_TEST}"
+        "\nENABLE_ASAN: ${CHIMESDK_ENABLE_ASAN}"
+        "\nBUILD_TEST: ${CHIMESDK_BUILD_TEST}"
 )
 
 set(SDK_HEADERS
@@ -108,7 +108,7 @@ FetchContent_Declare(
 	SOURCE_SUBDIR  cmake
 	)
 
-set(protobuf_BUILD_TESTS OFF CACHE BOOL "enable tests for proto" FORCE)
+set(protobuf_BUILD_TESTS OFF)
 FetchContent_MakeAvailable(protobuf)
 
 target_link_libraries(${LIBRARY_NAME} PRIVATE protobuf::libprotobuf)
@@ -149,39 +149,8 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
             "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 endif()
 
-# Combine binaries
-# Currently supporting Mac and Linux
-
-set(SDK_BINARY_LIB_NAME "libamazon_chime_signaling_sdk")
-
-if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
-    set(SDK_BINARY_NAME "${SDK_BINARY_LIB_NAME}.a")
-
-    # TODO @hokyungh: might be better to use mri script
-    add_custom_command(
-            TARGET ${LIBRARY_NAME}
-            POST_BUILD
-            COMMAND ar -x $<TARGET_FILE:${LIBRARY_NAME}>
-	    COMMAND ar -x $<TARGET_FILE:protobuf::libprotobuf>
-            COMMAND ar -x $<TARGET_FILE:websockets>
-            COMMAND ar -qc ${SDK_BINARY_NAME} *.o
-    )
-elseif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-    set(SDK_BINARY_NAME "${SDK_BINARY_LIB_NAME}.a")
-    add_custom_command(
-            TARGET ${LIBRARY_NAME}
-            POST_BUILD
-            COMMAND
-            libtool -static -o ${SDK_BINARY_NAME}
-            $<TARGET_FILE:${LIBRARY_NAME}>
-            $<TARGET_FILE:protobuf::libprotobuf>
-            $<TARGET_FILE:websockets>
-            $<TARGET_FILE:websockets_shared>
-    )
-endif()
-
 # Run unit test
-if (BUILD_TEST)
+if (CHIMESDK_BUILD_TEST)
     include(CTest)
     enable_testing()
     add_subdirectory(test)
