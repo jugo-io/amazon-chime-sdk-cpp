@@ -108,6 +108,7 @@ class SignalingClient : public Runnable {
    * @param removed - List of mids to be removed from subscribed remote videos
    */
   virtual void UpdateRemoteVideoSubscriptions(const std::map<std::string, RemoteVideoSourceInfo>& added_updated,
+
                                               const std::vector<std::string>& removed) = 0;
 
   /**

@@ -6,15 +6,22 @@
 
 #include "audio_video/media_section.h"
 
+#include <array>
+#include <algorithm>
+#include <cstdio>
+#include <optional>
 #include <string>
 #include <regex>
+#include <string_view>
 
 namespace chime {
+
 
 const std::string rec_only = "a=recvonly";
 const std::string send_only = "a=sendonly";
 const std::string inactive = "a=inactive";
 const std::string sendrecv = "a=sendrecv";
+const std::string mid_prefix = "a=mid:";
 
 class SDPUtils {
  public:
@@ -50,36 +57,69 @@ class SDPUtils {
 
   // TODO @hokyungh: might be worth if we don't do parsing by ourselves.
   static std::vector<MediaSection> ParseSDP(const std::string& sdp) {
-    std::vector<std::string> sdp_vec = Split(sdp, "\r\n");
+    std::vector<std::string> sdp_lines = Split(sdp, "\r\n");
     std::vector<MediaSection> media_sections;
-    const std::string mid_str = "a=mid:";
-    bool is_audio_section = false;
     std::string mid;
-    for (const auto& line : sdp_vec) {
-      if (line.find("m=audio", 0) == 0) {
-        is_audio_section = true;
-      } else if (line.find("m=video", 0) == 0) {
-        is_audio_section = false;
-      } else if (line.find(mid_str, 0) == 0) {
-        mid = line.substr(mid_str.length(), std::string::npos);
-      } else if (line.find(rec_only, 0) == 0 || line.find(send_only, 0) == 0 || line.find(inactive, 0) == 0 ||
-                 line.find(sendrecv, 0) == 0) {
-        MediaSection media_section{is_audio_section ? MediaType::kAudio : MediaType::kVideo, mid, GetDirection(line)};
 
-        media_sections.emplace_back(media_section);
+    auto is_media_section_header = [](std::string_view line) { return StartsWith(line, "m="); };
+
+    const auto sdp_end = std::cend(sdp_lines);
+    auto section_start = std::find_if(std::cbegin(sdp_lines), sdp_end, is_media_section_header);
+
+    while (section_start != sdp_end) {
+      auto section_end = std::find_if(section_start + 1, sdp_end, is_media_section_header);
+
+      auto media_section = ParseMediaSection(section_start, section_end);
+
+      if (media_section) {
+        media_sections.push_back(std::move(media_section.value()));
+      } else {
+        // TODO: proper logging
+        std::fprintf(stderr, "failed to parse media section starting with: %s\n", section_start->c_str());
       }
-    }
 
+      section_start = section_end;
+    }
     return media_sections;
   }
 
  private:
-  static MediaDirection GetDirection(const std::string& str) {
+  static bool StartsWith(std::string_view str, std::string_view prefix) {
+    return str.substr(0, prefix.length()) == prefix;
+  }
+
+  static std::optional<MediaDirection> GetDirection(const std::string_view str) {
     if (str == rec_only) return MediaDirection::kRecvOnly;
     if (str == inactive) return MediaDirection::kInactive;
     if (str == send_only) return MediaDirection::kSendOnly;
+    if (str == sendrecv) return MediaDirection::kSendRecv;
 
-    return MediaDirection::kSendRecv;
+    return {};
+  }
+
+  static std::optional<MediaSection> ParseMediaSection(std::vector<std::string>::const_iterator begin, const std::vector<std::string>::const_iterator end) {
+    MediaType type = StartsWith(*begin, "m=audio") ? MediaType::kAudio : MediaType::kVideo;
+    std::string mid;
+    std::optional<MediaDirection> dir;
+
+    while (begin != end) {
+      if (StartsWith(*begin, mid_prefix)) {
+        mid = begin->substr(mid_prefix.length());
+          printf("found mid: %s\n", mid.c_str());
+      } else if (!dir) {
+        dir = GetDirection(*begin);
+        if (dir) {
+          printf("found direction: %d\n", *dir);
+        }
+      }
+      ++begin;
+    }
+
+    if (mid.length() > 0 && dir) {
+      return std::optional<MediaSection>{MediaSection{type, mid, *dir}};
+    }
+
+    return {};
   }
 };
 

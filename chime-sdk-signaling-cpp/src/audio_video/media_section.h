@@ -4,6 +4,8 @@
 #ifndef CHIME_SIGNALING_MEDIA_SECTION_H_
 #define CHIME_SIGNALING_MEDIA_SECTION_H_
 
+#include <string>
+
 namespace chime {
 enum class MediaType {
   kAudio,
