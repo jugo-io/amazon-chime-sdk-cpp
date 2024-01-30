@@ -76,7 +76,8 @@ set(SDK_SRC
         src/websocket/default_websocket_factory.cc
         src/proto/video_control.pb.cc)
 
-add_library(${LIBRARY_NAME} "${SDK_HEADERS}" "${SDK_SRC}")
+add_library(${LIBRARY_NAME}-static STATIC "${SDK_HEADERS}" "${SDK_SRC}")
+add_library(${LIBRARY_NAME} SHARED "${SDK_HEADERS}" "${SDK_SRC}")
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/")
 
@@ -98,7 +99,7 @@ set(LWS_WITHOUT_TEST_PING ON)
 set(LWS_WITHOUT_TEST_CLIENT ON)
 FetchContent_MakeAvailable(libwebsockets)
 
-target_link_libraries(${LIBRARY_NAME} PRIVATE websockets)
+target_link_libraries(${LIBRARY_NAME} PUBLIC websockets)
 
 # Protobuf
 FetchContent_Declare(
@@ -109,9 +110,15 @@ FetchContent_Declare(
 	)
 
 set(protobuf_BUILD_TESTS OFF)
+set(protobuf_BUILD_EXAMPLES OFF)
+set(protobuf_BUILD_PROTOC_BINARIES ON) # Need to build everything to install
 FetchContent_MakeAvailable(protobuf)
 
-target_link_libraries(${LIBRARY_NAME} PRIVATE protobuf::libprotobuf)
+target_link_libraries(${LIBRARY_NAME} PUBLIC protobuf::libprotobuf)
+
+# Not needed but will break if not built on install
+# Should bump protobuf version in the future
+add_dependencies(${LIBRARY_NAME} protobuf::libprotobuf-lite protobuf::libprotoc protoc)
 
 # Include src directory so that we can avoid .. in the header includes
 target_include_directories(${LIBRARY_NAME}
