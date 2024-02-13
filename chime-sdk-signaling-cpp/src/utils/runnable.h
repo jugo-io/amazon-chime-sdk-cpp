@@ -13,10 +13,7 @@ namespace chime {
 class Runnable {
  public:
   ~Runnable() {
-    bool expected = true;
-    if (running_.compare_exchange_strong(expected, false)) {
-      StopRun();
-    }
+    StopRun();
   }
   // Implementation may require this to be called.
   // It is expected that this call is non-blocking.
