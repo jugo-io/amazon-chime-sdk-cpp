@@ -87,7 +87,7 @@ include(FetchContent)
 FetchContent_Declare(
         libwebsockets
         GIT_REPOSITORY https://github.com/warmcat/libwebsockets.git
-        GIT_TAG        v4.3.3
+        GIT_TAG        141ebf373ca0fed7b41eb960cdbd7ab1f29490dc
 )
 
 # Use open ssl static lib
@@ -99,6 +99,7 @@ set(LWS_WITHOUT_TEST_PING ON)
 set(LWS_WITHOUT_TEST_CLIENT ON)
 FetchContent_MakeAvailable(libwebsockets)
 
+target_link_libraries(${LIBRARY_NAME}-static PUBLIC websockets)
 target_link_libraries(${LIBRARY_NAME} PUBLIC websockets)
 
 # Protobuf
@@ -114,6 +115,7 @@ set(protobuf_BUILD_EXAMPLES OFF)
 set(protobuf_BUILD_PROTOC_BINARIES ON) # Need to build everything to install
 FetchContent_MakeAvailable(protobuf)
 
+target_link_libraries(${LIBRARY_NAME}-static PUBLIC protobuf::libprotobuf)
 target_link_libraries(${LIBRARY_NAME} PUBLIC protobuf::libprotobuf)
 
 # Not needed but will break if not built on install
@@ -121,10 +123,15 @@ target_link_libraries(${LIBRARY_NAME} PUBLIC protobuf::libprotobuf)
 add_dependencies(${LIBRARY_NAME} protobuf::libprotobuf-lite protobuf::libprotoc protoc)
 
 # Include src directory so that we can avoid .. in the header includes
+target_include_directories(${LIBRARY_NAME}-static
+        PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src")
 target_include_directories(${LIBRARY_NAME}
         PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src")
 
 # Expose include paths for upstream projects
+target_include_directories(
+        ${LIBRARY_NAME}-static INTERFACE $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+        $<INSTALL_INTERFACE:include>)
 target_include_directories(
         ${LIBRARY_NAME} INTERFACE $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
         $<INSTALL_INTERFACE:include>)
