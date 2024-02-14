@@ -3,6 +3,8 @@
 #ifndef CHIME_SIGNALING_REMOTE_VIDEO_SOURCE_INFO_H_
 #define CHIME_SIGNALING_REMOTE_VIDEO_SOURCE_INFO_H_
 
+#include <cstdint>
+
 #include "utils/attendee.h"
 
 namespace chime {
